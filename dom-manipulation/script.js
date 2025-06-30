@@ -20,20 +20,39 @@ if (!quotes) {
 var quoteDisplay = document.getElementById("quoteDisplay");
 var newQuoteBtn = document.getElementById("newQuote");
 var categoryList = document.getElementById("categoryList");
+var categoryFilter = document.getElementById("categoryFilter");
+
+function saveQuotes() {
+  localStorage.setItem("quotes", JSON.stringify(quotes));
+}
 
 function showRandomQuote() {
-  if (quotes.length === 0) {
-    quoteDisplay.textContent = "No quotes available. Please add one!";
+  var selectedCategory = categoryFilter.value;
+  var filteredQuotes = [];
+
+  if (selectedCategory === "all") {
+    filteredQuotes = quotes;
+  } else {
+    for (var i = 0; i < quotes.length; i++) {
+      if (quotes[i].category === selectedCategory) {
+        filteredQuotes.push(quotes[i]);
+      }
+    }
+  }
+
+  if (filteredQuotes.length === 0) {
+    quoteDisplay.textContent = "No quotes found in this category.";
     return;
   }
 
-  var index = Math.floor(Math.random() * quotes.length);
-  var quote = quotes[index];
+  var index = Math.floor(Math.random() * filteredQuotes.length);
+  var quote = filteredQuotes[index];
 
   quoteDisplay.innerHTML =
     '<blockquote>"' +
     quote.text +
-    '"</blockquote><p><em>Category: ' +
+    '"</blockquote>' +
+    "<p><em>Category: " +
     quote.category +
     "</em></p>";
 
@@ -52,19 +71,42 @@ function addQuote() {
     return;
   }
 
-  var newQuote = {
-    text: text,
-    category: category,
-  };
-
+  var newQuote = { text: text, category: category };
   quotes.push(newQuote);
-  localStorage.setItem("quotes", JSON.stringify(quotes));
+  saveQuotes();
 
   textInput.value = "";
   categoryInput.value = "";
 
   updateCategoryList();
+  populateCategories();
   alert("Quote added!");
+}
+
+function populateCategories() {
+  var categories = ["all"];
+  for (var i = 0; i < quotes.length; i++) {
+    if (categories.indexOf(quotes[i].category) === -1) {
+      categories.push(quotes[i].category);
+    }
+  }
+
+  var currentFilter = categoryFilter.value;
+
+  categoryFilter.innerHTML = "";
+  for (var j = 0; j < categories.length; j++) {
+    var option = document.createElement("option");
+    option.value = categories[j];
+    option.textContent = categories[j];
+    categoryFilter.appendChild(option);
+  }
+
+  var savedFilter = localStorage.getItem("selectedFilter");
+  if (savedFilter && categories.includes(savedFilter)) {
+    categoryFilter.value = savedFilter;
+  } else {
+    categoryFilter.value = currentFilter || "all";
+  }
 }
 
 function updateCategoryList() {
@@ -84,11 +126,16 @@ function updateCategoryList() {
   }
 }
 
+function filterQuotes() {
+  var selected = categoryFilter.value;
+  localStorage.setItem("selectedFilter", selected);
+  showRandomQuote();
+}
+
 function exportToJsonFile() {
   var data = JSON.stringify(quotes);
   var blob = new Blob([data], { type: "application/json" });
   var url = URL.createObjectURL(blob);
-
   var a = document.createElement("a");
   a.href = url;
   a.download = "quotes.json";
@@ -98,7 +145,6 @@ function exportToJsonFile() {
 
 function importFromJsonFile(event) {
   var reader = new FileReader();
-
   reader.onload = function (e) {
     var importedQuotes = JSON.parse(e.target.result);
     for (var i = 0; i < importedQuotes.length; i++) {
@@ -106,11 +152,11 @@ function importFromJsonFile(event) {
         quotes.push(importedQuotes[i]);
       }
     }
-    localStorage.setItem("quotes", JSON.stringify(quotes));
+    saveQuotes();
     updateCategoryList();
+    populateCategories();
     alert("Quotes imported!");
   };
-
   reader.readAsText(event.target.files[0]);
 }
 
@@ -121,7 +167,8 @@ function loadLastViewedQuote() {
     quoteDisplay.innerHTML =
       '<blockquote>"' +
       quote.text +
-      '"</blockquote><p><em>Category: ' +
+      '"</blockquote>' +
+      "<p><em>Category: " +
       quote.category +
       "</em></p>";
   } else {
@@ -130,9 +177,11 @@ function loadLastViewedQuote() {
 }
 
 newQuoteBtn.addEventListener("click", showRandomQuote);
-loadLastViewedQuote();
+populateCategories();
 updateCategoryList();
+loadLastViewedQuote();
 
 window.addQuote = addQuote;
-window.importFromJsonFile = importFromJsonFile;
 window.exportToJsonFile = exportToJsonFile;
+window.importFromJsonFile = importFromJsonFile;
+window.filterQuotes = filterQuotes;
