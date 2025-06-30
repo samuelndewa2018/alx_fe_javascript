@@ -27,6 +27,11 @@
       <ul id="categoryList"></ul>
     </div>
 
+    <div style="margin-top: 20px">
+      <button onclick="exportToJsonFile()">Export Quotes to JSON</button>
+      <input type="file" accept=".json" onchange="importFromJsonFile(event)" />
+    </div>
+
     <script src="script.js"></script>
   </body>
 </html>
